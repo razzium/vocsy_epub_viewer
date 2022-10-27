@@ -1,8 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
-
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -66,6 +67,36 @@ class EpubViewer {
       throw ('${extension(bookPath)} cannot be opened, use an EPUB File');
     }
   }
+
+  /// bookPath should be an asset file path.
+  /// Last location is only available for android.
+  static Future openFromNetwork(String url, {EpubLocator? lastLocation}) async {
+    DefaultCacheManager().getFileStream(url, withProgress: true).listen((value) async {
+      if(value is FileInfo){
+        if (extension(value.file.path) == '.epub') {
+            Map<String, dynamic> agrs = {
+            "bookPath": value.file.path,
+          'lastLocation':
+        lastLocation == null ? '' : jsonEncode(lastLocation.toJson()),
+        };
+        _channel.invokeMethod('setChannel');
+        await _channel.invokeMethod('open', agrs);
+        } else {
+        throw ('${extension(value.file.path)} cannot be opened, use an EPUB File');
+        }
+      }
+    });
+  }
+  // static Future openFromNetwork(String bookPath, {EpubLocator? lastLocation}) async {
+  //   DefaultCacheManager().getFileStream("https://www.ressources-actualisation.fr${file.url}", withProgress: true).listen((value) {
+  //     print("Value ${value}");
+  //     if(value is FileInfo){
+  //       EpubViewer.openAssetaaa(value.file.path);
+  //     } else if(value is DownloadProgress){
+  //       var aaa = "";
+  //     }
+  //   });
+  // }
 
   static Future setChannel() async {
     await _channel.invokeMethod('setChannel');
